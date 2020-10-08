@@ -1,6 +1,7 @@
 package org.mule.extension.jsonlogger.internal;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.beanutils.BeanUtils;
@@ -158,7 +159,10 @@ public class JsonloggerOperations {
                                                     JsonNode tempContentNode = om.getObjectMapper().readTree((InputStream)typedVal.getValue());
                                                     JsonMasker masker = new JsonMasker(dataMaskingFields, true);
                                                     JsonNode masked = masker.mask(tempContentNode);
-                                                    typedValuesAsJsonNode.put(k, masked);
+                                                    ObjectMapper objectMapper = new ObjectMapper();
+    												String json = objectMapper.writeValueAsString(masked);
+    												// LOGGER.debug("JSON STRING CONVERTED" + json);
+    												typedValuesAsString.put(k, json);
                                                 } else {
                                                     typedValuesAsJsonNode.put(k, om.getObjectMapper().readTree((InputStream)typedVal.getValue()));
                                                 }
@@ -166,7 +170,27 @@ public class JsonloggerOperations {
                                                 typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
                                             }
                                         } else {
-                                            typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+
+                                            // Is content type application/json?
+                                            if (typedVal.getDataType().getMediaType().getPrimaryType().equals("application") && typedVal.getDataType().getMediaType().getSubType().equals("json")) {
+                                                // Apply masking if needed
+                                                List<String> dataMaskingFields = (config.getJsonOutput().getContentFieldsDataMasking() != null) ? Arrays.asList(config.getJsonOutput().getContentFieldsDataMasking().split(",")) : new ArrayList<>();
+                                                LOGGER.debug("The following JSON keys/paths will be masked for logging: " + dataMaskingFields);
+                                                if (!dataMaskingFields.isEmpty()) {
+                                                    JsonNode tempContentNode = om.getObjectMapper().readTree((InputStream)typedVal.getValue());
+                                                    JsonMasker masker = new JsonMasker(dataMaskingFields, true);
+                                                    JsonNode masked = masker.mask(tempContentNode);
+                                                    ObjectMapper objectMapper = new ObjectMapper();
+    												String json = objectMapper.writeValueAsString(masked);
+    												// LOGGER.debug("JSON STRING CONVERTED" + json);
+    												typedValuesAsString.put(k, json);
+                                                } else {
+                                                	typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+                                                }
+                                            } else {
+                                                typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+                                            }
+                                        
                                         }
                                     }
                                 }

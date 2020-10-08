@@ -6,6 +6,10 @@
 # Command should be called as follows:
 # ./deploy-logger-only.sh some-org-id-value
 
+exec 3>&1 4>&2
+trap 'exec 2>&4 1>&3' 0 1 2 3
+exec 1>log.out 2>&1
+
 if [ "$#" -ne 1 ]
 then
   echo "[ERROR] You need to provide your OrgId"

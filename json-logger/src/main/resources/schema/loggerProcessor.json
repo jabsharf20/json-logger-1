@@ -24,10 +24,26 @@
       "type": "string",
       "javaType": "org.mule.runtime.extension.api.runtime.parameter.ParameterResolver<org.mule.runtime.api.metadata.TypedValue<java.io.InputStream>>",
       "sdk": {
-        "default": "#[import modules::JSONLoggerModule output application/json ---\n{\n    payload: JSONLoggerModule::stringifyNonJSON(payload) \n}]",
+        "default": "#[output application/json ---\n{\n \tvars: vars,\n \tattributes: attributes\n}]",
         "summary": "NOTE: Writing the entire payload every time across your application can cause serious performance issues",
-        "required": false,
+        "required": true,
         "isContent": true
+      }
+    },
+    "endpoint": {
+      "type": "string",
+      "sdk": {
+        "example": "Endpoint",
+        "required": false,
+        "summary": "endpoint"
+      }
+    },
+    "status": {
+      "type": "string",
+      "sdk": {
+        "example": "Status sode",
+        "required": false,
+        "summary": "status code"
       }
     },
     "tracePoint": {
@@ -40,6 +56,9 @@
         "BEFORE_REQUEST",
         "AFTER_REQUEST",
         "FLOW",
+        "BEFORE_FLOW",
+        "AFTER_FLOW",
+        "PRINT",
         "END",
         "EXCEPTION"
       ],

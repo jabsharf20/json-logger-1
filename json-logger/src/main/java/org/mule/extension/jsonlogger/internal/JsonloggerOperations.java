@@ -1,10 +1,13 @@
 package org.mule.extension.jsonlogger.internal;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.io.IOUtils;
 import org.joda.time.DateTime;
 import org.mule.extension.jsonlogger.api.pojos.LoggerProcessor;
 import org.mule.extension.jsonlogger.api.pojos.Priority;
@@ -36,11 +39,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+
+import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.mule.runtime.api.meta.ExpressionSupport.NOT_SUPPORTED;
 import static org.mule.runtime.api.metadata.DataType.TEXT_STRING;
+import static org.mule.runtime.api.metadata.DataType.JSON_STRING;
 
 /**
  * This class is a container for operations, every public method in this class will be taken as an extension operation.
@@ -135,39 +144,84 @@ public class JsonloggerOperations {
                                 }
                                 if (v.getClass().getCanonicalName().equals("org.mule.runtime.api.metadata.TypedValue")) {
                                     LOGGER.debug("org.mule.runtime.api.metadata.TypedValue type was found for field: " + k);
-                                    TypedValue<InputStream> typedVal = (TypedValue<InputStream>) v;
-                                    LOGGER.debug("Parsing TypedValue for field " + k);
-
-                                    LOGGER.debug("TypedValue MediaType: " + typedVal.getDataType().getMediaType());
-                                    LOGGER.debug("TypedValue Type: " + typedVal.getDataType().getType().getCanonicalName());
-                                    LOGGER.debug("TypedValue Class: " + typedVal.getValue().getClass().getCanonicalName());
+                                    TypedValue<InputStream> typedVal = (TypedValue<InputStream>) v;                                    
+                                    LOGGER.debug("Parsing TypedValue for field " + k);                     
 
                                     // Remove unparsed field
                                     BeanUtils.setProperty(loggerProcessor, k, null);
 
                                     // Evaluate if typedValue is null
                                     if (typedVal.getValue() != null) {
-                                        // Should content type field be parsed as part of JSON log?
-                                        if (config.getJsonOutput().isParseContentFieldsInJsonOutput()) {
-                                            // Is content type application/json?
-                                            if (typedVal.getDataType().getMediaType().getPrimaryType().equals("application") && typedVal.getDataType().getMediaType().getSubType().equals("json")) {
-                                                // Apply masking if needed
-                                                List<String> dataMaskingFields = (config.getJsonOutput().getContentFieldsDataMasking() != null) ? Arrays.asList(config.getJsonOutput().getContentFieldsDataMasking().split(",")) : new ArrayList<>();
-                                                LOGGER.debug("The following JSON keys/paths will be masked for logging: " + dataMaskingFields);
-                                                if (!dataMaskingFields.isEmpty()) {
-                                                    JsonNode tempContentNode = om.getObjectMapper().readTree((InputStream)typedVal.getValue());
-                                                    JsonMasker masker = new JsonMasker(dataMaskingFields, true);
-                                                    JsonNode masked = masker.mask(tempContentNode);
+										// Should content type field be parsed as part of JSON log?
+										if (config.getJsonOutput().isParseContentFieldsInJsonOutput()) {
+											// Is content type application/json?
+											if (typedVal.getDataType().getMediaType().getPrimaryType()
+													.equals("application")
+													&& typedVal.getDataType().getMediaType().getSubType()
+															.equals("json")) {
+												// Apply masking if needed
+												List<String> dataMaskingFields = (config.getJsonOutput()
+														.getContentFieldsDataMasking() != null)
+																? Arrays.asList(config.getJsonOutput()
+																		.getContentFieldsDataMasking().split(","))
+																: new ArrayList<>();
+												LOGGER.debug(
+														"The following JSON keys/paths will be masked for logging: "
+																+ dataMaskingFields);
+												if (!dataMaskingFields.isEmpty()) {
+													JsonNode tempContentNode = om.getObjectMapper()
+															.readTree((InputStream) typedVal.getValue());
+													JsonMasker masker = new JsonMasker(dataMaskingFields, true);
+													JsonNode masked = masker.mask(tempContentNode);
                                                     typedValuesAsJsonNode.put(k, masked);
-                                                } else {
-                                                    typedValuesAsJsonNode.put(k, om.getObjectMapper().readTree((InputStream)typedVal.getValue()));
-                                                }
-                                            } else {
-                                                typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
-                                            }
-                                        } else {
-                                            typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
-                                        }
+													
+												} else {
+													typedValuesAsJsonNode.put(k, om.getObjectMapper()
+															.readTree((InputStream) typedVal.getValue()));
+												}
+											} else {
+													
+													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+                                            
+												
+											}
+										} else {
+											// Is content type application/json?
+											if (typedVal.getDataType().getMediaType().getPrimaryType()
+													.equals("application")
+													&& typedVal.getDataType().getMediaType().getSubType()
+															.equals("json")) {
+												// Apply masking if needed
+												List<String> dataMaskingFields = (config.getJsonOutput()
+														.getContentFieldsDataMasking() != null)
+																? Arrays.asList(config.getJsonOutput()
+																		.getContentFieldsDataMasking().split(","))
+																: new ArrayList<>();
+												LOGGER.debug(
+														"The following JSON keys/paths will be masked for logging: "
+																+ dataMaskingFields);
+												if (!dataMaskingFields.isEmpty()) {
+													JsonNode tempContentNode = om.getObjectMapper()
+															.readTree((InputStream) typedVal.getValue());
+													JsonMasker masker = new JsonMasker(dataMaskingFields, true);
+													JsonNode masked = masker.mask(tempContentNode);
+													ObjectMapper objectMapper = new ObjectMapper();
+													String json = objectMapper.writerWithDefaultPrettyPrinter()
+								                               .writeValueAsString(masked);
+													json = json.replaceAll("(\\r)", "");
+													typedValuesAsString.put(k, json);
+												} else {
+													
+													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+	                                            
+												}
+											} else {
+													
+													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+                                            
+											}
+
+										}
                                     }
                                 }
                             } catch (Exception e) {

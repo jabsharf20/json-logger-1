@@ -144,7 +144,6 @@ public class JsonloggerOperations {
                                 }
                                 if (v.getClass().getCanonicalName().equals("org.mule.runtime.api.metadata.TypedValue")) {
                                     LOGGER.debug("org.mule.runtime.api.metadata.TypedValue type was found for field: " + k);
-                                    System.out.println("before typed Value ..."+v);                                    
                                     TypedValue<InputStream> typedVal = (TypedValue<InputStream>) v;                                    
                                     LOGGER.debug("Parsing TypedValue for field " + k);                     
 
@@ -174,29 +173,17 @@ public class JsonloggerOperations {
 															.readTree((InputStream) typedVal.getValue());
 													JsonMasker masker = new JsonMasker(dataMaskingFields, true);
 													JsonNode masked = masker.mask(tempContentNode);
-													ObjectMapper objectMapper = new ObjectMapper();
-													String json = objectMapper.writerWithDefaultPrettyPrinter()
-								                               .writeValueAsString(masked);
-													json = json.replaceAll("(\\r)", "");
-													typedValuesAsString.put(k, json);
+                                                    typedValuesAsJsonNode.put(k, masked);
 													
 												} else {
 													typedValuesAsJsonNode.put(k, om.getObjectMapper()
 															.readTree((InputStream) typedVal.getValue()));
 												}
 											} else {
-												String result = new BufferedReader(
-														new InputStreamReader(typedVal.getValue())).lines()
-																.collect(Collectors.joining("\n"));
-
-												if (result.contains("LinkedHashMap4")) {
-													typedValuesAsString.put(k,
-															(String) transformationService.transform(
-																	typedVal.getValue(), typedVal.getDataType(),
-																	TEXT_STRING));
-												} else {
-													typedValuesAsString.put(k, result);
-												}
+													
+													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+                                            
+												
 											}
 										} else {
 											// Is content type application/json?
@@ -221,17 +208,17 @@ public class JsonloggerOperations {
 													ObjectMapper objectMapper = new ObjectMapper();
 													String json = objectMapper.writerWithDefaultPrettyPrinter()
 								                               .writeValueAsString(masked);
+													json = json.replaceAll("(\\r)", "");
 													typedValuesAsString.put(k, json);
 												} else {
-													typedValuesAsString.put(k,
-															(String) transformationService.transform(
-																	typedVal.getValue(), typedVal.getDataType(),
-																	TEXT_STRING));
+													
+													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+	                                            
 												}
 											} else {
-												typedValuesAsString.put(k,
-														(String) transformationService.transform(typedVal.getValue(),
-																typedVal.getDataType(), TEXT_STRING));
+													
+													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
+                                            
 											}
 
 										}

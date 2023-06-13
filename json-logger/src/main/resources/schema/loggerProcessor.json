@@ -60,10 +60,11 @@
         "AFTER_FLOW",
         "PRINT",
         "END",
-        "EXCEPTION"
+        "EXCEPTION",
+        "ALERT"
       ],
       "sdk": {
-        "default": "START",
+        "required":true,
         "summary": "Current processing stage"
       }
     },

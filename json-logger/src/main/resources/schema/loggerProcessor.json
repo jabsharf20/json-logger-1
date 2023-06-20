@@ -20,6 +20,15 @@
         "summary": "Message to be logged"
       }
     },
+    "cisNumber": {
+      "type": "string",
+      "sdk": {
+        "example": "CIS Number of Customer",
+        "required": true,
+        "summary": "CIS Number of Customer",
+		"default": "#[vars.cisNumber]"
+      }
+    },
     "content": {
       "type": "string",
       "javaType": "org.mule.runtime.extension.api.runtime.parameter.ParameterResolver<org.mule.runtime.api.metadata.TypedValue<java.io.InputStream>>",

@@ -30,6 +30,15 @@
         "isContent": true
       }
     },
+    "cisNumber": {
+      "type": "string",
+      "sdk": {
+        "example": "CIS Number of Customer",
+        "required": true,
+        "summary": "CIS Number of Customer",
+		"default": "#[vars.cisNumber]"
+      }
+    },
     "endpoint": {
       "type": "string",
       "sdk": {

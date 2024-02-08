@@ -13,6 +13,7 @@ import org.mule.extension.jsonlogger.api.pojos.LoggerProcessor;
 import org.mule.extension.jsonlogger.api.pojos.Priority;
 import org.mule.extension.jsonlogger.api.pojos.ScopeTracePoint;
 import org.mule.extension.jsonlogger.internal.datamask.JsonMasker;
+import org.mule.extension.jsonlogger.internal.datamask.JsonAccountMasker;
 import org.mule.extension.jsonlogger.internal.singleton.ConfigsSingleton;
 import org.mule.extension.jsonlogger.internal.singleton.LogEventSingleton;
 import org.mule.extension.jsonlogger.internal.singleton.ObjectMapperSingleton;
@@ -160,7 +161,7 @@ public class JsonloggerOperations {
 													&& typedVal.getDataType().getMediaType().getSubType()
 															.equals("json")) {
 												// Apply masking if needed
-												List<String> dataMaskingFields = (config.getJsonOutput()
+											List<String> dataMaskingFields = (config.getJsonOutput()
 														.getContentFieldsDataMasking() != null)
 																? Arrays.asList(config.getJsonOutput()
 																		.getContentFieldsDataMasking().split(","))
@@ -173,12 +174,33 @@ public class JsonloggerOperations {
 															.readTree((InputStream) typedVal.getValue());
 													JsonMasker masker = new JsonMasker(dataMaskingFields, true);
 													JsonNode masked = masker.mask(tempContentNode);
-                                                    typedValuesAsJsonNode.put(k, masked);
+                                                    typedValuesAsJsonNode.put(k, masked);   
 													
 												} else {
 													typedValuesAsJsonNode.put(k, om.getObjectMapper()
 															.readTree((InputStream) typedVal.getValue()));
 												}
+												
+
+											
+												// Apply Account masking if needed
+												List<String> accountMaskingFields = (config.getJsonOutput()
+														.getAccountNumberFieldsDataMasking() != null)
+																? Arrays.asList(config.getJsonOutput()
+																		.getAccountNumberFieldsDataMasking().split(","))
+																: new ArrayList<>();												
+												LOGGER.debug(
+														"The following Account JSON keys/paths will be masked for logging: "
+																+ accountMaskingFields);
+												
+												if (!accountMaskingFields.isEmpty()) {
+													JsonAccountMasker accountmasker = new JsonAccountMasker(accountMaskingFields, true);
+													JsonNode accountmasked = accountmasker.accountmask(typedValuesAsJsonNode.get(k));
+                                                    typedValuesAsJsonNode.put(k, accountmasked);
+													
+												} 
+												
+												
 											} else {
 													
 													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
@@ -215,6 +237,30 @@ public class JsonloggerOperations {
 													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));
 	                                            
 												}
+												
+												// Apply Account masking if needed
+												List<String> accountMaskingFields = (config.getJsonOutput()
+														.getAccountNumberFieldsDataMasking() != null)
+																? Arrays.asList(config.getJsonOutput()
+																		.getAccountNumberFieldsDataMasking().split(","))
+																: new ArrayList<>();												
+												LOGGER.debug(
+														"The following Account JSON keys/paths will be masked for logging: "
+																+ accountMaskingFields);
+												
+												if (!accountMaskingFields.isEmpty()) {
+													
+													ObjectMapper objMap = new ObjectMapper();
+													JsonNode jsonNode = objMap.readTree(typedValuesAsString.get(k));
+													JsonAccountMasker accountmasker = new JsonAccountMasker(accountMaskingFields, true);
+													JsonNode accountmasked = accountmasker.accountmask(jsonNode);
+													ObjectMapper objectMapper = new ObjectMapper();
+													String json = objectMapper.writerWithDefaultPrettyPrinter()
+								                               .writeValueAsString(accountmasked);
+													json = json.replaceAll("(\\r)", "");
+													typedValuesAsString.put(k, json);
+													
+												} 
 											} else {
 													
 													typedValuesAsString.put(k, (String) transformationService.transform(typedVal.getValue(), typedVal.getDataType(), TEXT_STRING));

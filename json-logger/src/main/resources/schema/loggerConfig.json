@@ -80,6 +80,16 @@
           },
           "note": "This field is mandatory. DON'T REMOVE"
         },
+        "accountNumberFieldsDataMasking": {
+          "type": "string",
+          "sdk": {
+            "summary": "Indicate which account number fields (inside a content type with JSON output only) should be masked before from logging separated by comma. They can be JSON keys or JSON paths. If empty, no masking will be applied. Recommendation: This value should be based on external property",
+            "example": "accountNumber,acctNumber",
+            "required": false,
+            "expressionSupport": "NOT_SUPPORTED"
+          },
+          "note": "This field is mandatory. DON'T REMOVE"
+        },
         "contentFieldsDataMasking": {
           "type": "string",
           "sdk": {
